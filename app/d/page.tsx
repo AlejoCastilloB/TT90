@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase/client";
 import { Profile, Objective, NonNegotiable, DailyLog, DailyLogItem } from "@/lib/types";
 import ProgressBar from "@/components/ProgressBar";
 import ThemeToggle from "@/components/ThemeToggle";
+import HabitEditor from "@/components/HabitEditor";
 
 function DashboardInner() {
   const params = useSearchParams();
@@ -27,7 +28,6 @@ function DashboardInner() {
   const [openDayItems, setOpenDayItems] = useState<DailyLogItem[]>([]);
   const [journalDraft, setJournalDraft] = useState("");
   const [editingHabits, setEditingHabits] = useState(false);
-  const [newHabitName, setNewHabitName] = useState("");
 
   useEffect(() => {
     if (!profileId) {
@@ -42,10 +42,7 @@ function DashboardInner() {
   async function loadAll(pid: string) {
     setLoading(true);
     const { data: prof } = await supabase.from("profiles").select("*").eq("id", pid).single();
-    if (!prof) {
-      setLoading(false);
-      return;
-    }
+    if (!prof) { setLoading(false); return; }
     setProfile(prof);
 
     const { data: nnData } = await supabase
@@ -118,35 +115,6 @@ function DashboardInner() {
     if (profileId) await loadAll(profileId);
   }
 
-  async function addHabit() {
-    if (!profile || !newHabitName.trim()) return;
-    const { data: created } = await supabase
-      .from("non_negotiables")
-      .insert({ profile_id: profile.id, name: newHabitName.trim(), icon: "•", sort_order: nns.length + 1 })
-      .select()
-      .single();
-    setNewHabitName("");
-    if (created && openDayLog && isEditable) {
-      const { data: newItem } = await supabase
-        .from("daily_log_items")
-        .insert({ daily_log_id: openDayLog.id, non_negotiable_id: created.id })
-        .select()
-        .single();
-      if (newItem) setOpenDayItems((prev) => [...prev, newItem]);
-    }
-    if (profileId) await loadAll(profileId);
-  }
-
-  async function renameHabit(id: string, name: string) {
-    setNns((prev) => prev.map((n) => (n.id === id ? { ...n, name } : n)));
-    await supabase.from("non_negotiables").update({ name }).eq("id", id);
-  }
-
-  async function toggleHabitEnabled(id: string, enabled: boolean) {
-    setNns((prev) => prev.map((n) => (n.id === id ? { ...n, enabled } : n)));
-    await supabase.from("non_negotiables").update({ enabled }).eq("id", id);
-  }
-
   async function saveGoals() {
     for (let i = 0; i < 3; i++) {
       const obj = objectives[i];
@@ -179,7 +147,6 @@ function DashboardInner() {
   history.forEach((l) => byDay.set(l.day_number, l));
   const todayDayNumber = todayLog?.day_number ?? 1;
   const recoveryLink = typeof window !== "undefined" ? `${window.location.origin}/d?p=${profile.id}` : "";
-  const activeHabits = nns.filter((n) => n.enabled);
 
   return (
     <main style={{ maxWidth: 560, margin: "0 auto", padding: "32px 18px 100px" }}>
@@ -241,7 +208,6 @@ function DashboardInner() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    position: "relative",
                     padding: 0,
                   }}
                 >
@@ -301,8 +267,8 @@ function DashboardInner() {
             <p className="eyebrow" style={{ marginBottom: 8 }}>Guarda este link</p>
             <h3 className="display" style={{ fontSize: "1.3rem", margin: "0 0 12px" }}>Así vuelves a tu reto</h3>
             <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginBottom: 14 }}>
-              Este link es tu única forma de entrar a tu progreso. Guárdalo o agrégalo a tu pantalla de inicio
-              para tenerlo a un toque de distancia.
+              Este link es tu única forma de entrar a tu progreso. Guárdalo o agrégalo a tu pantalla
+              de inicio para tenerlo a un toque de distancia.
             </p>
             <input type="text" readOnly value={recoveryLink} onFocus={(e) => e.target.select()} />
             <button className="btn-primary" style={{ width: "100%", marginTop: 14 }} onClick={() => setShowShare(false)}>
@@ -355,7 +321,6 @@ function DashboardInner() {
                       padding: "12px 6px",
                       borderBottom: "1px solid var(--card-border)",
                       cursor: isEditable ? "pointer" : "default",
-                      opacity: isEditable ? 1 : 0.85,
                     }}
                   >
                     <div
@@ -374,7 +339,14 @@ function DashboardInner() {
                       {item.done && <span style={{ color: "#1a1306", fontWeight: 900 }}>✓</span>}
                     </div>
                     <span style={{ fontSize: "1.15rem" }}>{nn.icon}</span>
-                    <span style={{ fontWeight: 600 }}>{nn.name}</span>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontWeight: 600 }}>{nn.name}</span>
+                      <span style={{ color: "var(--muted)", fontSize: "0.75rem", marginLeft: 8 }}>
+                        {nn.tracking_type === "days_per_week" && `${nn.tracking_value ?? 7} días/sem`}
+                        {nn.tracking_type === "minutes_per_day" && `${nn.tracking_value ?? 30} min/día`}
+                        {nn.tracking_type === "custom" && nn.tracking_custom}
+                      </span>
+                    </div>
                   </div>
                 );
               })}
@@ -387,7 +359,7 @@ function DashboardInner() {
               onChange={(e) => setJournalDraft(e.target.value)}
               onBlur={isEditable ? saveJournal : undefined}
               readOnly={!isEditable}
-              rows={5}
+              rows={4}
               style={{ marginTop: 8, resize: "vertical", fontFamily: "inherit" }}
             />
 
@@ -395,42 +367,21 @@ function DashboardInner() {
               <>
                 <button
                   className="btn-ghost"
-                  style={{ marginTop: 16, width: "100%", fontSize: "0.84rem" }}
+                  style={{ marginTop: 14, width: "100%", fontSize: "0.84rem" }}
                   onClick={() => setEditingHabits((v) => !v)}
                 >
-                  {editingHabits ? "Ocultar edición de hábitos" : "Editar mis hábitos"}
+                  {editingHabits ? "Ocultar editor de hábitos" : "Editar mis hábitos"}
                 </button>
 
                 {editingHabits && (
                   <div style={{ marginTop: 14 }}>
-                    {nns.map((nn) => (
-                      <div key={nn.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                        <input
-                          type="checkbox"
-                          checked={nn.enabled}
-                          onChange={(e) => toggleHabitEnabled(nn.id, e.target.checked)}
-                          style={{ width: 16, height: 16, flexShrink: 0 }}
-                        />
-                        <input
-                          type="text"
-                          defaultValue={nn.name}
-                          onBlur={(e) => renameHabit(nn.id, e.target.value)}
-                          style={{ fontSize: "0.85rem", padding: "8px 10px" }}
-                        />
-                      </div>
-                    ))}
-                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                      <input
-                        type="text"
-                        placeholder="Nuevo hábito..."
-                        value={newHabitName}
-                        onChange={(e) => setNewHabitName(e.target.value)}
-                        style={{ fontSize: "0.85rem" }}
-                      />
-                      <button className="btn-ghost" style={{ padding: "10px 16px", fontSize: "0.8rem" }} onClick={addHabit}>
-                        Agregar
-                      </button>
-                    </div>
+                    <HabitEditor
+                      habits={nns}
+                      onSave={async () => {
+                        setEditingHabits(false);
+                        if (profileId) await loadAll(profileId);
+                      }}
+                    />
                   </div>
                 )}
 
