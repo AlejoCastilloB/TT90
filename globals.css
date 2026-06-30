@@ -1,0 +1,128 @@
+:root {
+  --black: #0a0908;
+  --black-soft: #131110;
+  --card: #17140f;
+  --card-border: #2b2418;
+  --gold-1: #f4d989;
+  --gold-2: #d4a84a;
+  --gold-3: #8a6a26;
+  --white: #f6f2e8;
+  --muted: #8c8576;
+  --green: #6fae6f;
+  --blue: #6f93c9;
+  --purple: #a378c9;
+  --amber: #d9a23b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--black);
+  color: var(--white);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-body), -apple-system, BlinkMacSystemFont, sans-serif;
+  background-image: radial-gradient(circle at 50% -10%, rgba(212, 168, 74, 0.12), transparent 55%);
+  min-height: 100dvh;
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-2);
+}
+
+a { color: inherit; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, var(--gold-1), var(--gold-3));
+}
+
+.gold-text {
+  background: linear-gradient(135deg, var(--gold-1), var(--gold-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gold-1), var(--gold-3));
+  color: #1a1306;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 28px;
+  font-weight: 700;
+  font-size: 0.98rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(212, 168, 74, 0.25);
+}
+.btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--card-border);
+  border-radius: 999px;
+  padding: 14px 24px;
+  font-weight: 600;
+}
+
+input[type="text"],
+input[type="email"],
+textarea {
+  width: 100%;
+  background: var(--black-soft);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 13px 14px;
+  color: var(--white);
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+input[type="text"]:focus,
+input[type="email"]:focus,
+textarea:focus {
+  border-color: var(--gold-2);
+}
+input::placeholder, textarea::placeholder {
+  color: var(--muted);
+}
+
+::selection {
+  background: var(--gold-2);
+  color: #1a1306;
+}
