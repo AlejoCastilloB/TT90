@@ -33,15 +33,13 @@ export type DailyLog = {
   day_number: number;
   completed_all: boolean;
   closed: boolean;
-};
-
-export type DailyLog = {
-  id: string;
-  profile_id: string;
-  log_date: string;
-  day_number: number;
-  completed_all: boolean;
-  closed: boolean;
   journal: string | null;
 };
 
+export type DailyLogItem = {
+  id: string;
+  daily_log_id: string;
+  non_negotiable_id: string;
+  done: boolean;
+  note: string | null;
+};
