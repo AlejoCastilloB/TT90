@@ -46,3 +46,4 @@ export type DailyLogItem = {
   done: boolean;
   note: string | null;
 };
+
