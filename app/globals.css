@@ -126,3 +126,19 @@ input::placeholder, textarea::placeholder {
   background: var(--gold-2);
   color: #1a1306;
 }
+
+[data-theme="light"] {
+  --black: #2b2210;
+  --black-soft: #3c2f15;
+  --card: #4a3a18;
+  --card-border: #6b541f;
+  --gold-1: #ffe8a3;
+  --gold-2: #f0c25e;
+  --gold-3: #c99a32;
+  --white: #ffffff;
+  --muted: #d9c79a;
+}
+
+[data-theme="light"] body {
+  background-image: radial-gradient(circle at 50% -10%, rgba(255, 232, 163, 0.25), transparent 60%);
+}
