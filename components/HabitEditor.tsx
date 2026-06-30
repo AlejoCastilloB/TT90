@@ -42,12 +42,6 @@ export default function HabitEditor({ habits, onSave }: HabitEditorProps) {
     onSave();
   }
 
-  const trackingLabel = (h: NonNegotiable) => {
-    if (h.tracking_type === "days_per_week") return `${h.tracking_value ?? 7} días/sem`;
-    if (h.tracking_type === "minutes_per_day") return `${h.tracking_value ?? 30} min/día`;
-    return h.tracking_custom || "Personalizado";
-  };
-
   return (
     <div>
       {localHabits.map((h) => (
@@ -135,11 +129,104 @@ export default function HabitEditor({ habits, onSave }: HabitEditorProps) {
                   padding: "6px 4px",
                   borderRadius: 8,
                   border: "1px solid var(--card-border)",
-                  background: h.tracking_type === type ? "linear-gradient(135deg, var(--gold-1), var(--gold-3))" : "var(--black-soft)",
+                  background: h.tracking_type === type
+                    ? "linear-gradient(135deg, var(--gold-1), var(--gold-3))"
+                    : "var(--black-soft)",
                   color: h.tracking_type === type ? "#1a1306" : "var(--muted)",
                   fontSize: "0.72rem",
                   fontWeight: 600,
                   cursor: "pointer",
                 }}
               >
-                {type === "days_per_week" ? "Días/sem" : type === "minutes_per_day" ? "Min/día" :
+                {type === "days_per_week" ? "Días/sem" : type === "minutes_per_day" ? "Min/día" : "Libre"}
+              </button>
+            ))}
+          </div>
+
+          {h.tracking_type === "days_per_week" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ color: "var(--muted)", fontSize: "0.82rem" }}>Días por semana:</span>
+              <div style={{ display: "flex", gap: 4 }}>
+                {[1,2,3,4,5,6,7].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => updateHabit(h.id, { tracking_value: n })}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 6,
+                      border: "1px solid var(--card-border)",
+                      background: (h.tracking_value ?? 7) === n
+                        ? "linear-gradient(135deg, var(--gold-1), var(--gold-3))"
+                        : "var(--black-soft)",
+                      color: (h.tracking_value ?? 7) === n ? "#1a1306" : "var(--muted)",
+                      fontSize: "0.78rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {h.tracking_type === "minutes_per_day" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ color: "var(--muted)", fontSize: "0.82rem" }}>Min por día:</span>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                {[10,15,20,30,45,60].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => updateHabit(h.id, { tracking_value: n })}
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: 6,
+                      border: "1px solid var(--card-border)",
+                      background: (h.tracking_value ?? 30) === n
+                        ? "linear-gradient(135deg, var(--gold-1), var(--gold-3))"
+                        : "var(--black-soft)",
+                      color: (h.tracking_value ?? 30) === n ? "#1a1306" : "var(--muted)",
+                      fontSize: "0.78rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {h.tracking_type === "custom" && (
+            <input
+              type="text"
+              placeholder="Ej: 2 litros de agua, 10.000 pasos..."
+              maxLength={40}
+              value={h.tracking_custom || ""}
+              onChange={(e) => updateHabit(h.id, { tracking_custom: e.target.value })}
+              style={{ fontSize: "0.82rem", padding: "8px 10px" }}
+            />
+          )}
+
+          <p style={{ color: "var(--muted)", fontSize: "0.72rem", marginTop: 8, textAlign: "right" }}>
+            {h.tracking_type === "days_per_week" && `${h.tracking_value ?? 7} días/sem`}
+            {h.tracking_type === "minutes_per_day" && `${h.tracking_value ?? 30} min/día`}
+            {h.tracking_type === "custom" && (h.tracking_custom || "Personalizado")}
+          </p>
+        </div>
+      ))}
+
+      <button
+        className="btn-primary"
+        style={{ width: "100%", marginTop: 8 }}
+        disabled={saving}
+        onClick={saveAll}
+      >
+        {saving ? "Guardando..." : "Guardar hábitos"}
+      </button>
+    </div>
+  );
+}
