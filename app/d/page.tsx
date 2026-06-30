@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Profile, Objective, NonNegotiable, DailyLog, DailyLogItem } from "@/lib/types";
 import ProgressBar from "@/components/ProgressBar";
+import ThemeToggle from "@/components/ThemeToggle";
 
 function DashboardInner() {
   const params = useSearchParams();
