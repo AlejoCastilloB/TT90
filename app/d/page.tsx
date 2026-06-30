@@ -22,7 +22,6 @@ function DashboardInner() {
   const [editingGoals, setEditingGoals] = useState(false);
   const [goalDrafts, setGoalDrafts] = useState<string[]>(["", "", ""]);
   const [showShare, setShowShare] = useState(false);
-
   const [openDay, setOpenDay] = useState<number | null>(null);
   const [openDayLog, setOpenDayLog] = useState<DailyLog | null>(null);
   const [openDayItems, setOpenDayItems] = useState<DailyLogItem[]>([]);
@@ -30,57 +29,38 @@ function DashboardInner() {
   const [editingHabits, setEditingHabits] = useState(false);
 
   useEffect(() => {
-    if (!profileId) {
-      router.push("/");
-      return;
-    }
+    if (!profileId) { router.push("/"); return; }
     localStorage.setItem("tt90_profile_id", profileId);
     loadAll(profileId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileId]);
 
-async function openDayModal(dayNumber: number) {
-  if (!profile) return;
-  
-  // Buscar en historial o en todayLog
-  let log = history.find((l) => l.day_number === dayNumber) || 
-            (todayLog?.day_number === dayNumber ? todayLog : null);
-  
-  // Si es el día de hoy y no tenemos el log, intentar crearlo
-  if (!log) {
-    const { data: todayRows } = await supabase.rpc("get_or_create_today_log", { 
-      p_profile_id: profile.id 
-    });
+  async function loadAll(pid: string) {
+    setLoading(true);
+    const { data: prof } = await supabase.from("profiles").select("*").eq("id", pid).single();
+    if (!prof) { setLoading(false); return null; }
+    setProfile(prof);
+
+    const { data: nnData } = await supabase
+      .from("non_negotiables").select("*").eq("profile_id", pid).order("sort_order");
+    setNns(nnData || []);
+
+    const { data: objData } = await supabase
+      .from("objectives").select("*").eq("profile_id", pid).order("slot");
+    setObjectives(objData || []);
+    setGoalDrafts((objData || []).map((o) => o.text) ?? ["", "", ""]);
+
+    const { data: todayRows } = await supabase.rpc("get_or_create_today_log", { p_profile_id: pid });
     const today = todayRows && todayRows[0];
+    let todayLogRow: DailyLog | null = null;
     if (today) {
-      const { data: logRow } = await supabase
-        .from("daily_logs")
-        .select("*")
-        .eq("id", today.log_id)
-        .single();
-      log = logRow;
+      const { data: logRow } = await supabase.from("daily_logs").select("*").eq("id", today.log_id).single();
+      todayLogRow = logRow;
       setTodayLog(logRow);
     }
-  }
-
-  if (!log) return;
-  
-  setOpenDay(dayNumber);
-  setOpenDayLog(log);
-  setJournalDraft(log.journal || "");
-  setEditingHabits(false);
-  const { data: items } = await supabase
-    .from("daily_log_items")
-    .select("*")
-    .eq("daily_log_id", log.id);
-  setOpenDayItems(items || []);
-}
 
     const { data: hist } = await supabase
-      .from("daily_logs")
-      .select("*")
-      .eq("profile_id", pid)
-      .order("day_number");
+      .from("daily_logs").select("*").eq("profile_id", pid).order("day_number");
     setHistory(hist || []);
 
     setLoading(false);
@@ -89,7 +69,20 @@ async function openDayModal(dayNumber: number) {
 
   async function openDayModal(dayNumber: number) {
     if (!profile) return;
-    const log = history.find((l) => l.day_number === dayNumber) || (todayLog?.day_number === dayNumber ? todayLog : null);
+    let log: DailyLog | null =
+      history.find((l) => l.day_number === dayNumber) ||
+      (todayLog?.day_number === dayNumber ? todayLog : null);
+
+    if (!log) {
+      const { data: todayRows } = await supabase.rpc("get_or_create_today_log", { p_profile_id: profile.id });
+      const today = todayRows && todayRows[0];
+      if (today) {
+        const { data: logRow } = await supabase.from("daily_logs").select("*").eq("id", today.log_id).single();
+        log = logRow;
+        setTodayLog(logRow);
+      }
+    }
+
     if (!log) return;
     setOpenDay(dayNumber);
     setOpenDayLog(log);
@@ -114,15 +107,14 @@ async function openDayModal(dayNumber: number) {
     setOpenDayItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, done: newDone } : i)));
     await supabase.rpc("toggle_log_item", { p_log_item_id: item.id, p_done: newDone, p_note: null });
     if (profileId) {
-      const updatedToday = await loadAll(profileId);
-      if (updatedToday) setOpenDayLog(updatedToday);
+      const updated = await loadAll(profileId);
+      if (updated) setOpenDayLog(updated);
     }
   }
 
   async function saveJournal() {
     if (!openDayLog || !isEditable) return;
     await supabase.from("daily_logs").update({ journal: journalDraft }).eq("id", openDayLog.id);
-    if (profileId) await loadAll(profileId);
   }
 
   async function saveGoals() {
@@ -269,16 +261,12 @@ async function openDayModal(dayNumber: number) {
       </section>
 
       {showShare && (
-        <div
-          onClick={() => setShowShare(false)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 }}
-        >
+        <div onClick={() => setShowShare(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, zIndex: 50 }}>
           <div className="card" onClick={(e) => e.stopPropagation()} style={{ padding: 24, maxWidth: 440 }}>
             <p className="eyebrow" style={{ marginBottom: 8 }}>Guarda este link</p>
             <h3 className="display" style={{ fontSize: "1.3rem", margin: "0 0 12px" }}>Así vuelves a tu reto</h3>
             <p style={{ color: "var(--muted)", fontSize: "0.88rem", marginBottom: 14 }}>
-              Este link es tu única forma de entrar a tu progreso. Guárdalo o agrégalo a tu pantalla
-              de inicio para tenerlo a un toque de distancia.
+              Este link es tu única forma de entrar a tu progreso. Guárdalo o agrégalo a tu pantalla de inicio para tenerlo a un toque de distancia.
             </p>
             <input type="text" readOnly value={recoveryLink} onFocus={(e) => e.target.select()} />
             <button className="btn-primary" style={{ width: "100%", marginTop: 14 }} onClick={() => setShowShare(false)}>
@@ -289,10 +277,7 @@ async function openDayModal(dayNumber: number) {
       )}
 
       {openDay !== null && openDayLog && (
-        <div
-          onClick={closeDayModal}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 60 }}
-        >
+        <div onClick={closeDayModal} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 60 }}>
           <div
             className="card"
             onClick={(e) => e.stopPropagation()}
@@ -305,9 +290,7 @@ async function openDayModal(dayNumber: number) {
                   {isEditable ? "Hoy" : "Registro pasado"}
                 </h2>
               </div>
-              <button className="btn-ghost" style={{ padding: "6px 10px", fontSize: "0.85rem" }} onClick={closeDayModal}>
-                ✕
-              </button>
+              <button className="btn-ghost" style={{ padding: "6px 10px", fontSize: "0.85rem" }} onClick={closeDayModal}>✕</button>
             </div>
 
             {!isEditable && (
@@ -324,28 +307,9 @@ async function openDayModal(dayNumber: number) {
                   <div
                     key={item.id}
                     onClick={() => toggleItem(item)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "12px 6px",
-                      borderBottom: "1px solid var(--card-border)",
-                      cursor: isEditable ? "pointer" : "default",
-                    }}
+                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 6px", borderBottom: "1px solid var(--card-border)", cursor: isEditable ? "pointer" : "default" }}
                   >
-                    <div
-                      style={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: 8,
-                        background: item.done ? "linear-gradient(135deg, var(--gold-1), var(--gold-3))" : "transparent",
-                        border: item.done ? "none" : "2px solid var(--card-border)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
+                    <div style={{ width: 26, height: 26, borderRadius: 8, background: item.done ? "linear-gradient(135deg, var(--gold-1), var(--gold-3))" : "transparent", border: item.done ? "none" : "2px solid var(--card-border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       {item.done && <span style={{ color: "#1a1306", fontWeight: 900 }}>✓</span>}
                     </div>
                     <span style={{ fontSize: "1.15rem" }}>{nn.icon}</span>
