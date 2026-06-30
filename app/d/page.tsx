@@ -190,9 +190,12 @@ function DashboardInner() {
             Día {todayDayNumber} de 90
           </h1>
         </div>
-        <button className="btn-ghost" style={{ padding: "8px 14px", fontSize: "0.8rem", whiteSpace: "nowrap" }} onClick={() => setShowShare(true)}>
-          Mi link
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <ThemeToggle />
+          <button className="btn-ghost" style={{ padding: "8px 14px", fontSize: "0.8rem", whiteSpace: "nowrap" }} onClick={() => setShowShare(true)}>
+            Mi link
+          </button>
+        </div>
       </header>
 
       <section className="card" style={{ padding: 20, marginBottom: 24 }}>
