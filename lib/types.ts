@@ -24,6 +24,9 @@ export type NonNegotiable = {
   icon: string;
   enabled: boolean;
   sort_order: number;
+  tracking_type: "days_per_week" | "minutes_per_day" | "custom";
+  tracking_value: number | null;
+  tracking_custom: string | null;
 };
 
 export type DailyLog = {
