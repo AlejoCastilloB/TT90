@@ -39,32 +39,42 @@ function DashboardInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileId]);
 
-  async function loadAll(pid: string) {
-    setLoading(true);
-    const { data: prof } = await supabase.from("profiles").select("*").eq("id", pid).single();
-    if (!prof) { setLoading(false); return; }
-    setProfile(prof);
-
-    const { data: nnData } = await supabase
-      .from("non_negotiables")
-      .select("*")
-      .eq("profile_id", pid)
-      .order("sort_order");
-    setNns(nnData || []);
-
-    const { data: objData } = await supabase.from("objectives").select("*").eq("profile_id", pid).order("slot");
-    setObjectives(objData || []);
-    setGoalDrafts((objData || []).map((o) => o.text) ?? ["", "", ""]);
-
-    const { data: todayRows } = await supabase.rpc("get_or_create_today_log", { p_profile_id: pid });
+async function openDayModal(dayNumber: number) {
+  if (!profile) return;
+  
+  // Buscar en historial o en todayLog
+  let log = history.find((l) => l.day_number === dayNumber) || 
+            (todayLog?.day_number === dayNumber ? todayLog : null);
+  
+  // Si es el día de hoy y no tenemos el log, intentar crearlo
+  if (!log) {
+    const { data: todayRows } = await supabase.rpc("get_or_create_today_log", { 
+      p_profile_id: profile.id 
+    });
     const today = todayRows && todayRows[0];
-
-    let todayLogRow: DailyLog | null = null;
     if (today) {
-      const { data: logRow } = await supabase.from("daily_logs").select("*").eq("id", today.log_id).single();
-      todayLogRow = logRow;
+      const { data: logRow } = await supabase
+        .from("daily_logs")
+        .select("*")
+        .eq("id", today.log_id)
+        .single();
+      log = logRow;
       setTodayLog(logRow);
     }
+  }
+
+  if (!log) return;
+  
+  setOpenDay(dayNumber);
+  setOpenDayLog(log);
+  setJournalDraft(log.journal || "");
+  setEditingHabits(false);
+  const { data: items } = await supabase
+    .from("daily_log_items")
+    .select("*")
+    .eq("daily_log_id", log.id);
+  setOpenDayItems(items || []);
+}
 
     const { data: hist } = await supabase
       .from("daily_logs")
